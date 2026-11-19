@@ -1,0 +1,12 @@
+# WeChat developer tool private settings and local identity
+**/project.private.config.json
+**/project.config.local.json
+.env
+.env.*
+!.env.example
+**/node_modules/
+**/miniprogram_npm/
+.DS_Store
+Thumbs.db
+*.log
+*.zip

@@ -1,0 +1,239 @@
+
+<template name="cardio-stats">
+ <view class="cardio-stats">
+  <view><text>{{stats.totalTime}}</text><view>实际用时</view></view>
+  <view><text>{{stats.fastTime}}</text><view>累计快段</view></view>
+  <view><text>{{stats.roundsDone}} / {{stats.rounds}}</text><view>完成轮数</view></view>
+ </view>
+</template>
+<view class="shell {{screen === 'today' || screen === 'plan' || screen === 'library' || screen === 'mine' ? 'with-tabs' : ''}}">
+ <view wx:if="{{screen === 'today'}}" class="today">
+  <view class="h1">今天，动一动</view>
+  <view class="hero">
+   <view class="hero-heading">
+    <image class="hero-icon" src="/assets/ui/strength.svg" mode="aspectFit" aria-hidden="true" />
+    <view>
+     <view class="h2">基础力量</view>
+     <view class="body">{{settings.minutes}} 分钟 · {{settings.minutes === 25 ? '推 / 拉 / 蹲 / 髋' : '推 / 拉 / 蹲'}}</view>
+    </view>
+   </view>
+   <button class="primary" bindtap="start">{{ongoing ? '继续训练' : '开始训练'}}</button>
+  </view>
+  <view wx:if="{{shift}}" class="muted note">下一节已顺延至 {{shift}}，也可随时开始。</view>
+  <button class="row cardio-entry" bindtap="cardioEntry">
+   <image class="interval-icon" src="/assets/ui/interval.svg" mode="aspectFit" aria-hidden="true" />
+   <view class="grow">{{cardioEnded ? '保存有氧打卡' : cardioOngoing ? '继续间歇有氧' : '间歇有氧'}}
+    <view class="note">{{cardioEnded ? '上次训练等待确认' : cardioOngoing ? '继续上次的计时进度' : '自选运动 · 跟随计时'}}</view>
+   </view><text class="chevron">›</text>
+  </button>
+  <view class="section"><view class="h2">今日动作</view><button class="link" bindtap="nav" data-screen="plan">查看计划</button></view>
+  <view class="grouped-list">
+   <button wx:for="{{main}}" wx:key="slot" class="row" bindtap="showArt" data-id="{{item.id}}">
+    <view class="grow">{{item.name}}<view wx:if="{{!item.id}}" class="note muted">{{item.gear}}</view></view><text class="chevron">›</text>
+   </button>
+  </view>
+  <button wx:if="{{!configured}}" class="link" bindtap="nav" data-screen="setup">按我的情况生成计划 ›</button>
+  <view wx:if="{{settings.core}}" class="section"><view class="h2">可选核心加练</view><button class="link" bindtap="start" data-core="yes">{{ongoing ? '继续本次训练' : '开始加练'}}</button></view>
+ </view>
+ <view wx:elif="{{screen === 'setup'}}">
+  <button class="link back" bindtap="back">‹ 返回</button>
+  <view class="h1">生成计划</view><view class="muted intro">选一个符合现在条件的安排。开始后也能调整单个动作。</view>
+  <view wx:for="{{fields}}" wx:key="key" wx:for-item="field" class="setting">
+   <view class="label">{{field.label}}</view>
+   <view class="choices"><button wx:for="{{field.choices}}" wx:key="*this" wx:for-item="option" class="choice {{form[field.key] === option ? 'selected' : ''}}" bindtap="formChoice" data-field="{{field.key}}" data-value="{{option}}">{{option}}{{field.suffix}}</button></view>
+  </view>
+  <view class="muted note">适用于能进行一般运动的成年人。</view>
+  <button class="primary" bindtap="createPlan">生成训练计划</button>
+ </view>
+ <view wx:elif="{{screen === 'plan'}}">
+  <view class="h1">我的计划</view>
+  <view class="mint"><view class="h2">{{planTitle}}</view><view>{{settings.goal}} · 每周 {{settings.days}} 次 · {{settings.gear}}</view><view class="note">本周主课 {{weekDone}} / {{settings.days}} 次</view></view>
+  <view class="section"><view class="h2">主训练</view><button class="link" bindtap="nav" data-screen="setup">调整计划</button></view>
+  <button wx:for="{{main}}" wx:key="slot" class="row" bindtap="showArt" data-id="{{item.id}}"><text class="number">{{item.number}}</text><view class="grow">{{item.name}}<view class="note muted">{{item.gear}}</view></view><text wx:if="{{item.id}}">›</text></button>
+  <view class="section"><view class="h2">核心加练</view><button class="link" bindtap="toggleCore">{{settings.core ? '已开启 · 关闭' : '开启'}}</button></view>
+  <view class="note muted">简化死虫与膝支撑侧桥，单独记录。</view><button class="outline" bindtap="shift">顺延到明天</button>
+ </view>
+ <view wx:elif="{{screen === 'library'}}" class="exercise-library">
+  <view class="h1">动作库</view><view class="muted intro">按动作类型找合适的变式。</view>
+  <view class="library-filters">
+   <button wx:for="{{categories}}" wx:key="*this" class="library-filter {{filter === item ? 'selected' : ''}}" bindtap="filter" data-group="{{item}}" aria-pressed="{{filter === item}}">{{item}}</button>
+  </view>
+  <view class="exercise-grid">
+   <button wx:for="{{library}}" wx:key="id" class="exercise-card" bindtap="showArt" data-id="{{item.id}}" aria-label="{{item.name + '，' + item.gear}}">
+    <view class="exercise-preview">
+     <image class="exercise-image" src="{{item.frames[0].src}}" mode="aspectFit" lazy-load="{{true}}" aria-hidden="true" />
+     <text class="exercise-group">{{item.group}}</text>
+    </view>
+    <view class="exercise-caption">
+     <view class="grow"><view class="exercise-name">{{item.name}}</view><view class="note">{{item.gear}}</view></view>
+     <text class="chevron">›</text>
+    </view>
+   </button>
+  </view>
+ </view>
+ <view wx:elif="{{screen === 'mine'}}">
+  <view class="h1">训练记录</view>
+  <view class="metrics record-metrics">
+   <view><view>本周主课</view><text>{{weekDone}}</text> 次</view>
+   <view><view>本周有氧</view><text>{{cardioWeekCount}}</text> 次</view>
+  </view>
+  <view class="calendar">
+   <view class="calendar-head">
+    <button class="arrow" aria-label="上个月" bindtap="changeMonth" data-delta="-1">‹</button>
+    <view class="h3 month-title">{{monthTitle}}</view>
+    <button class="arrow" aria-label="下个月" bindtap="changeMonth" data-delta="1">›</button>
+   </view>
+   <view class="calendar-grid">
+    <view wx:for="{{weekdays}}" wx:key="*this" class="weekday">{{item}}</view>
+    <block wx:for="{{days}}" wx:key="key">
+     <view wx:if="{{item.empty}}"></view>
+     <button wx:else aria-label="{{item.label}}" class="day {{item.state}} {{item.selected ? 'chosen' : ''}} {{item.today ? 'today-date' : ''}}" bindtap="selectDay" data-day="{{item.key}}">
+      <text>{{item.day}}</text><text wx:if="{{item.cardio}}" class="day-cardio" aria-hidden="true">ϟ</text>
+     </button>
+    </block>
+   </view>
+   <view class="legend">
+    <view class="legend-item"><view class="swatch complete"></view><text>已完成</text></view>
+    <view class="legend-item"><view class="swatch partial"></view><text>部分完成</text></view>
+    <view class="legend-item"><view class="swatch none"></view><text>未训练</text></view>
+    <view class="legend-item"><text class="cardio-mark">ϟ</text><text>有氧</text></view>
+   </view>
+  </view>
+  <view class="section"><view class="h2">{{selectedDate ? selectedDate + ' 训练' : '本月训练'}}</view><button wx:if="{{selectedDate}}" class="link" bindtap="clearDay">查看全月</button></view>
+  <view wx:if="{{!records.length}}" class="muted note">{{selectedDate ? '当天没有训练记录。' : '本月没有训练记录。'}}</view>
+  <view wx:else class="grouped-list">
+   <view wx:for="{{records}}" wx:key="id" class="record">
+    <button class="record-body" bindtap="openRecord" data-id="{{item.id}}"><view class="grow">{{item.title}}<view class="note muted">{{item.date}}{{item.example ? ' · 示例' : ''}}</view></view><text class="badge {{item.state}}">{{item.statusText}}</text><text class="chevron">›</text></button>
+    <button class="delete" bindtap="remove" data-id="{{item.id}}">删除</button>
+   </view>
+  </view>
+  <view class="week-detail note">动作覆盖 {{coverage || '暂无'}} · 自评高强度 {{cardioWeekFast}}</view>
+  <view class="note">记录保存在当前设备。</view>
+ </view>
+ <view wx:elif="{{screen === 'cardioSetup'}}" class="cardio-flow">
+  <button class="link back" bindtap="back">‹ 返回今天</button>
+  <view class="h1">间歇有氧</view>
+  <view class="intro muted">选好运动和节奏，按提示在快段与恢复之间切换。</view>
+  <view class="label">运动项目</view>
+  <view class="cardio-sports">
+   <button wx:for="{{cardioSports}}" wx:key="*this" class="choice {{cardioForm.sport === item ? 'selected' : ''}}" bindtap="chooseCardioSport" data-sport="{{item}}">{{item}}</button>
+  </view>
+  <view class="cardio-settings">
+   <picker wx:for="{{cardioFields}}" wx:key="key" mode="selector" range="{{item.options}}" value="{{item.selected}}" bindchange="chooseCardioSetting" data-key="{{item.key}}">
+    <view class="cardio-setting"><text>{{item.label}}</text><text>{{item.value}} <text class="muted">›</text></text></view>
+   </picker>
+  </view>
+  <view class="note">预计 {{cardioPlanTime}}。最后一轮快段结束后进入放松。</view>
+  <button class="primary" bindtap="startCardio">开始计时</button>
+ </view>
+ <view wx:elif="{{screen === 'cardioTimer' && cardioTimer}}" class="cardio-flow">
+  <button class="link back" bindtap="leaveCardio">‹ 返回今天</button>
+  <view class="h1">间歇有氧</view>
+  <view class="intro muted">{{cardioTimer.config.sport}}<text wx:if="{{cardioTimer.round}}"> · 第 {{cardioTimer.round}} / {{cardioTimer.config.rounds}} 轮</text></view>
+  <view class="cardio-clock {{cardioTimer.type === 'fast' ? 'cardio-clock-fast' : ''}}">
+   <view class="clock-face">
+    <view class="clock-ring" style="--remaining:{{cardioTimer.progress}}%;" aria-hidden="true"></view>
+    <view class="cardio-phase">{{cardioTimer.label}}</view>
+    <view class="cardio-digits">{{cardioTimer.time}}</view>
+    <view wx:if="{{!cardioTimer.running}}" class="muted">已暂停</view>
+    <view wx:else class="muted {{cardioTimer.remaining <= 3 ? 'cardio-cue' : ''}}">接下来 · {{cardioTimer.next}}</view>
+   </view>
+   <view class="clock-caption">已完成 {{cardioTimer.roundsDone}} / {{cardioTimer.config.rounds}} 轮</view>
+  </view>
+  <button class="primary" bindtap="toggleCardio">{{cardioTimer.running ? '暂停' : '继续计时'}}</button>
+  <button class="outline" bindtap="endCardio">结束训练</button>
+  <view class="note cardio-rounds">切到后台时暂停</view>
+ </view>
+ <view wx:elif="{{screen === 'cardioReview' && cardioResult}}" class="cardio-flow">
+  <button class="link back" bindtap="back">‹ 返回今天</button>
+  <view class="h1">有氧打卡</view>
+  <view class="intro muted">{{cardioResult.sport}} · {{cardioResult.completed ? '轮数已完成' : '提前结束'}}</view>
+  <template is="cardio-stats" data="{{stats:cardioResult}}" />
+  <block wx:if="{{cardioResult.seconds}}">
+   <view class="label cardio-review-label">快段体感强度</view>
+   <view class="cardio-intensities">
+    <button wx:for="{{cardioIntensities}}" wx:key="*this" class="choice {{cardioIntensity === item ? 'selected' : ''}}" bindtap="chooseCardioIntensity" data-value="{{item}}">{{item}}</button>
+   </view>
+   <view class="note">确认快段整体达到高强度后，累计快段时间会计入本周自评高强度时长。</view>
+   <button class="primary" bindtap="saveCardio">保存打卡</button>
+  </block>
+  <view wx:else class="note">本次用时不足 1 秒。</view>
+  <button class="outline warning" bindtap="discardCardio">放弃本次记录</button>
+ </view>
+ <view wx:elif="{{screen === 'cardioSummary' && summary}}" class="cardio-flow">
+  <view class="h1">有氧记录</view>
+  <view class="intro muted">{{summary.sport}} · {{summary.date}} · {{summary.completed ? '已完成' : '部分完成'}}</view>
+  <template is="cardio-stats" data="{{stats:summary}}" />
+  <view class="note cardio-rounds">快段体感 · {{summary.intensity}}</view>
+  <button class="primary" bindtap="back">{{summaryBack === 'mine' ? '返回训练记录' : '返回今天'}}</button>
+ </view>
+ <view wx:elif="{{screen === 'train'}}">
+  <view class="training-head">
+   <button class="link" bindtap="back">‹ 返回</button>
+   <text>动作 {{exerciseIndex}} / {{totalMoves}}</text>
+   <button class="link" bindtap="listMoves">动作列表</button>
+  </view>
+  <button wx:if="{{previous && (!exercise || review)}}" class="link" bindtap="previous">‹ 上一个动作</button>
+  <block wx:if="{{!item}}">
+   <view class="h1">本次训练记录</view><view class="intro muted">训练后的整体感觉怎么样？</view>
+   <button class="primary" bindtap="finishTap" data-recovery="正常">恢复正常 · 查看小结</button>
+   <button class="outline" bindtap="finishTap" data-recovery="较差">感觉疲劳 · 查看小结</button>
+  </block>
+  <block wx:elif="{{!exercise}}">
+   <view class="h1">待补水平拉</view><view class="intro muted">当前没有可用的拉力器械，可先练其他动作。</view><button class="primary" bindtap="skip">跳过，继续训练</button>
+  </block>
+  <block wx:elif="{{review}}">
+   <view class="h1">{{exercise.name}}</view><view class="intro muted">这个动作已完成。</view>
+   <view class="cues"><view wx:for="{{reviewSets}}" wx:key="number" wx:for-item="set">第 {{set.number}} 组 · {{set.reps}} {{exercise.unit}} · 余力 {{set.effort}}</view></view>
+   <button class="primary" bindtap="forward">继续训练</button>
+  </block>
+  <block wx:else>
+   <view class="h1">{{exercise.name}}</view>
+   <view class="illustration"><view class="split"><text class="label">动作示意</text><button class="link" bindtap="showArt" data-id="{{exercise.id}}">放大示意</button></view>
+    <image class="art" src="{{exercise.art}}" mode="widthFix" aria-label="{{exercise.name}}的两帧示意"></image>
+    <view class="pose-labels"><text>① {{exercise.poses[0]}}</text><text>② {{exercise.poses[1]}}</text></view>
+   </view>
+   <view class="training-log">
+    <view class="split"><text class="label">第 {{item.sets.length+1}} / {{item.target}} 组</text><text class="note">目标 {{exercise.min}}–{{exercise.max}} {{exercise.unit}}</text></view>
+    <view class="stepper"><button class="round" bindtap="adjust" data-delta="-1" aria-label="减少">−</button><view><view class="count">{{reps}}</view><text>{{exercise.unit === '秒' ? '秒数' : '次数'}}</text></view><button class="round" bindtap="adjust" data-delta="1" aria-label="增加">+</button></view>
+    <view class="label effort-label">余力</view>
+    <view class="choices efforts"><button wx:for="{{effortOptions}}" wx:key="*this" class="choice {{effort === item ? 'selected' : ''}}" bindtap="setEffort" data-value="{{item}}" aria-pressed="{{effort === item}}">{{item}}</button></view>
+    <view class="split note"><text class="blue">已选：{{effort}}</text><view class="stable">动作可控 <switch checked="{{stable}}" bindchange="setStable" color="#0873f1"></switch></view></view>
+   </view>
+   <view class="training-actions">
+    <button wx:if="{{previous}}" class="training-side" bindtap="previous">上一个动作</button>
+    <text wx:else class="training-side training-side-muted" aria-disabled="true">上一个动作</text>
+    <button class="primary" bindtap="record">完成本组</button>
+    <button class="training-side" bindtap="skip">跳过动作</button>
+   </view>
+   <view class="rest split"><text>{{rest ? '休息还剩 '+rest+' 秒' : '组间休息 60 秒'}}</text><button class="link" bindtap="timerToggle">{{rest ? '结束休息' : '开始计时'}}</button></view>
+   <view class="cues"><view>• {{exercise.cue1}}</view><view>• {{exercise.cue2}}</view></view>
+   <view class="split"><button wx:if="{{!isCore}}" class="link" bindtap="replace">换动作</button><button class="link warning" bindtap="stop">不适，停止</button></view>
+  </block>
+ </view>
+ <view wx:elif="{{screen === 'summary' && summary}}">
+  <view class="result"><view class="done">✓</view><view class="h1">{{summary.completed ? '训练已完成' : '训练记录已保存'}}</view><view class="muted">{{summary.core ? '核心加练' : '主训练'}} · {{summary.date}}</view></view>
+  <view class="metrics"><view>完成动作<view><text>{{summary.completedMoves}}</text> 个</view></view><view>记录组数<view><text>{{summary.totalGroups}}</text> 组</view></view></view>
+  <view class="mint advice"><view class="h2">下次怎么练</view><view wx:for="{{summary.advice}}" wx:key="id" class="advice-item"><view class="label">{{item.name}} · {{item.type}}</view><view>{{item.text}}</view><button wx:if="{{item.next && !summary.core}}" class="link" bindtap="apply" data-id="{{item.next}}">下次用{{item.nextName}}</button></view></view>
+  <button class="primary" bindtap="back">{{summaryBack === 'mine' ? '返回训练记录' : '返回今天'}}</button>
+ </view>
+</view>
+<view wx:if="{{screen === 'today' || screen === 'plan' || screen === 'library' || screen === 'mine'}}" class="tabs">
+ <button wx:for="{{tabs}}" wx:key="id" class="tab {{screen === item.id ? 'active' : ''}}" bindtap="nav" data-screen="{{item.id}}">
+  <image class="tab-icon" src="{{'/assets/ui/' + item.id + '.svg'}}" mode="aspectFit" aria-hidden="true" />
+  <text>{{item.name}}</text>
+ </button>
+</view>
+<view wx:if="{{sheet}}" class="scrim" bindtap="closeSheet">
+ <view class="sheet" catchtap="noop"><view class="h2">{{sheet.title}}</view>
+  <block wx:if="{{sheet.type === 'art'}}">
+   <view wx:for="{{sheet.exercise.frames}}" wx:key="src" class="illustration frame">
+    <image class="art" mode="widthFix" src="{{item.src}}" aria-label="{{item.label}}"></image><view class="label frame-label">{{index+1}}. {{item.label}}</view>
+   </view><view class="cues"><view>• {{sheet.exercise.cue1}}</view><view>• {{sheet.exercise.cue2}}</view></view>
+  </block>
+  <block wx:elif="{{sheet.type === 'moves'}}"><view class="muted note">点选动作查看记录或返回补做。</view><button wx:for="{{moves}}" wx:key="slot" class="outline" bindtap="goMove" data-index="{{item.index}}">{{item.number}}. {{item.name}}<view class="note muted">{{item.status}}</view></button></block>
+  <block wx:elif="{{sheet.type === 'replace'}}"><view wx:if="{{!sheet.choices.length}}" class="muted note">当前没有匹配的替代动作。</view><button wx:for="{{sheet.choices}}" wx:key="id" class="outline" bindtap="choose" data-id="{{item.id}}">{{item.name}} · {{item.gear}}</button></block>
+  <view wx:elif="{{sheet.type === 'gap'}}" class="muted note">有适用的弹力带或稳固的训练低杠后，可以在计划中补充水平拉。</view>
+  <button class="link close" bindtap="closeSheet">关闭</button>
+ </view>
+</view>

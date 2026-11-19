@@ -1,0 +1,12 @@
+{
+  "pages": [
+    "pages/index/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "自重练习",
+    "navigationBarBackgroundColor": "#e2e9f8",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#e2e9f8"
+  },
+  "style": "v2"
+}

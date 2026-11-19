@@ -1,0 +1,11 @@
+{
+  "description": "自重练习微信小程序本地体验版",
+  "miniprogramRoot": "./",
+  "projectname": "bodyweight-training",
+  "compileType": "miniprogram",
+  "appid": "touristappid",
+  "setting": {
+    "es6": true,
+    "minified": true
+  }
+}
